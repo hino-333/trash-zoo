@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#68CFCA">
+<title>Trash zoo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 上部の表示。数値だけ。 -->
+<header id="hud">
+  <div class="hud-item"><span class="hud-label">来園</span><span class="hud-num" id="hud-visitors">–</span><span class="hud-label">人</span></div>
+  <div class="hud-sep"></div>
+  <div class="hud-item"><span class="hud-label">本日</span><span class="hud-num" id="hud-today">–</span><span class="hud-label">匹</span></div>
+</header>
+
+<!-- 島のマップ -->
+<main id="map-stage">
+  <div id="map-tilt">
+    <svg id="map" viewBox="0 0 900 1460" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+</main>
+
+<footer id="ticket-bar">
+  <span id="ticket-text">入場券を確認しています</span>
+  <button id="ticket-action" hidden>ゴミを出す</button>
+</footer>
+
+<!-- 放飼場の中 -->
+<section id="enclosure" class="overlay" hidden>
+  <button class="back" id="enclosure-back" aria-label="戻る"></button>
+  <div id="enclosure-plate">
+    <div id="enclosure-region">–</div>
+    <div id="enclosure-sub">–</div>
+  </div>
+  <div id="pen"></div>
+  <div id="pen-hazed" hidden>
+    <p>入場券の期限が切れました。</p>
+    <p>また明日。</p>
+    <button id="hazed-action">ゴミを出す</button>
+  </div>
+</section>
+
+<!-- 個体の詳細 -->
+<section id="detail" class="overlay" hidden>
+  <div id="detail-stage"></div>
+  <div id="detail-plate">
+    <div id="detail-name">–</div>
+    <div id="detail-meta"><span id="detail-flag"></span><span id="detail-time" class="mono">–</span></div>
+    <p id="detail-note">–</p>
+    <div id="detail-remain" class="mono">–</div>
+  </div>
+  <button class="back" id="detail-back" aria-label="戻る"></button>
+</section>
+
+<!-- 投稿フロー -->
+<section id="post" class="overlay solid" hidden>
+  <div id="post-inner">
+    <div id="post-step-intro" class="post-step">
+      <h1>今日はまだ入場券がありません</h1>
+      <p>今日出した食べ物のゴミを1つ、放してください。</p>
+      <p class="fine">切り抜きは自動で行われます。加工はできません。</p>
+      <label class="btn primary" for="post-file">写真を撮る / 選ぶ</label>
+      <input id="post-file" type="file" accept="image/*" capture="environment" hidden>
+      <button id="post-peek" class="btn ghost" hidden>先に少しだけ見る</button>
+    </div>
+
+    <div id="post-step-cut" class="post-step" hidden>
+      <h1>切り抜きました</h1>
+      <div id="cut-preview"><canvas id="cut-canvas"></canvas></div>
+      <div class="row">
+        <button id="cut-retry" class="btn ghost">撮り直す</button>
+        <button id="cut-ok" class="btn primary">これでいい</button>
+      </div>
+    </div>
+
+    <div id="post-step-judge" class="post-step" hidden>
+      <h1 id="judge-title">判定しています</h1>
+      <div id="judge-dots"><i></i><i></i><i></i></div>
+      <p id="judge-error" hidden></p>
+      <button id="judge-back" class="btn ghost" hidden>撮り直す</button>
+    </div>
+
+    <div id="post-step-sent" class="post-step" hidden>
+      <h1 id="sent-title">あなたの子は東アジアに送られました</h1>
+      <button id="sent-go" class="btn primary">島へ</button>
+    </div>
+  </div>
+</section>
+
+<!-- 静かな通知（工場行きなど） -->
+<div id="notice" hidden><p id="notice-text"></p><button id="notice-ok">閉じる</button></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
