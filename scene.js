@@ -195,17 +195,6 @@ function drawVisitor(parent, x, groundY, scale, pose, color, r, railY){
     SVG.path(inner, `M${-46*s},${bodyTop+44*s} q${-24*s},${26*s} ${-6*s},${44*s}`,
       'none', 1, color, 15*s);
   }
-  /* 柵に手をかけて覗き込む。 */
-  if((pose === 'stand' || pose === 'lean' || pose === 'kid') && railY != null && r() < .7){
-    const reach = Math.min(groundY - railY - 8, 120 * s);
-    if(reach > 18){
-      SVG.path(inner, `M${-40*s},${groundY-56*s} q${-10*s},${-reach*.5} ${4*s},${-reach}`,
-        'none', .95, color, 14*s);
-      SVG.path(inner, `M${40*s},${groundY-56*s} q${10*s},${-reach*.5} ${-4*s},${-reach}`,
-        'none', .95, color, 14*s);
-    }
-  }
-
   /* 帽子・髪・鞄。人ごとの差はここだけ。 */
   const hat = r();
   if(hat < .22) SVG.path(inner, `M${-headR*1.5},${bodyTop-headR*.5} q${headR*1.5},${-headR*.9} ${headR*3},0Z`, color, 1);
@@ -272,23 +261,32 @@ function buildExhibit(pen, key, W, H){
     SVG.ellipse(back, r()*W, y, 20 + r()*60, 5 + r()*12, sc.soil[1], .3);
   }
 
-  /* 展示場の奥の擁壁。岩を積んで、園路との境をつくる。 */
+  /* 展示場の奥の擁壁。不揃いな岩を積んで、園路との境をつくる。 */
   const wallY = horizon + H * .085;
-  for(let x = -30; x < W + 50; ){
-    const bw = 34 + r()*46, bh = bw * (.52 + r()*.3);
-    const tone = r();
-    const lit = tone < .5 ? sc.rock[0] : sc.soil[0];
-    const dark = tone < .5 ? sc.rock[1] : sc.soil[1];
-    const yy = wallY + (r()-.5) * H * .02;
-    SVG.path(back, `M${x},${yy+bh*.5} q${bw*.06},${-bh*1.35} ${bw*.52},${-bh*1.2}
-      q${bw*.62},${bh*.08} ${bw*.6},${bh*1.2}Z`, dark);
-    SVG.path(back, `M${x+bw*.06},${yy+bh*.42} q${bw*.06},${-bh*1.2} ${bw*.46},${-bh*1.05}
-      q${bw*.5},${bh*.06} ${bw*.5},${bh*1.05}Z`, lit);
-    SVG.path(back, `M${x+bw*.16},${yy-bh*.5} q${bw*.16},${-bh*.34} ${bw*.36},${-bh*.2}`,
-      'none', .34, '#FFFFFF', 3.5);
-    x += bw * .72;
+  const boulder = (cx, cy, bw, bh, lit, dark) => {
+    const steps = 8, jit = [];
+    for(let k = 0; k < steps; k++) jit.push(1 + (r() - .5) * .4);
+    const shape = (dx, dy, f) => jit.map((j, k) => {
+      const t = k / steps * Math.PI * 2;
+      return (k ? 'L' : 'M') + (cx + dx + Math.cos(t) * bw * j * f).toFixed(1)
+        + ',' + (cy + dy + Math.sin(t) * bh * j * f).toFixed(1);
+    }).join('') + 'Z';
+    SVG.path(back, shape(0, 0, 1), dark);
+    SVG.path(back, shape(-bw*.09, -bh*.16, .87), lit);
+    SVG.path(back, `M${cx-bw*.5},${cy-bh*.45} q${bw*.3},${-bh*.4} ${bw*.66},${-bh*.16}`,
+      'none', .3, '#FFFFFF', Math.max(2, bw*.11));
+  };
+  for(let pass = 0; pass < 2; pass++){
+    for(let x = -40; x < W + 60; ){
+      const bw = (22 + r()*30) * (pass ? 1 : .78);
+      const bh = bw * (.55 + r()*.3);
+      const tone = r();
+      boulder(x, wallY + (pass ? bh*.35 : -bh*.35) + (r()-.5)*H*.012, bw, bh,
+        tone < .5 ? sc.rock[0] : sc.soil[0], tone < .5 ? sc.rock[1] : sc.soil[1]);
+      x += bw * (1.05 + r()*.5);
+    }
   }
-  SVG.rect(back, 0, wallY + H*.03, W, H*.02, '#3B3226', .12);
+  SVG.rect(back, 0, wallY + H*.035, W, H*.018, '#3B3226', .1);
 
   /* 岩。同じ岩は二つとない。左上に光、右下に影。 */
   const rocks = 9 + Math.floor(r()*6);
@@ -360,11 +358,9 @@ function buildExhibit(pen, key, W, H){
   SVG.path(sign, `M${sx},${sy-46} L${sx+46},${sy} L${sx},${sy+46} L${sx-46},${sy}Z`, '#D8A82E');
   SVG.path(sign, `M${sx},${sy-40} L${sx+40},${sy} L${sx},${sy+40} L${sx-40},${sy}Z`, '#F5CB55');
   /* 跳ねている包み紙の標識 */
-  SVG.path(sign, `M${sx-9},${sy-14} q${11},${-9} ${20},0 q${8},${11} ${1},${21}
-    q${-12},${7} ${-23},0 q${-7},${-11} ${2},${-21}Z`, '#3A3020');
-  SVG.path(sign, `M${sx-9},${sy-9} L${sx-24},${sy-19} L${sx-20},${sy-1}Z`, '#3A3020');
-  SVG.path(sign, `M${sx+11},${sy-7} L${sx+26},${sy-17} L${sx+23},${sy+1}Z`, '#3A3020');
-  SVG.ellipse(sign, sx, sy + 26, 15, 3.5, '#3A3020', .45);
+  SVG.path(sign, `M${sx-17},${sy+14} q${-4},${-24} ${8},${-30} q${-2},${-8} ${4},${-10}
+    q${5},${9} ${9},${1} q${13},${5} ${9},${39} q${-15},${8} ${-30},0Z`, '#3A3020');
+  SVG.ellipse(sign, sx, sy + 24, 16, 4, '#3A3020', .4);
   SVG.rect(sign, sx - 46, sy + 52, 92, 26, '#D8A82E', 1, 4);
   SVG.rect(sign, sx - 46, sy + 50, 92, 26, '#F5CB55', 1, 4);
   const t = SVG.make('text', sign, { x:sx, y:sy + 68, 'text-anchor':'middle',
