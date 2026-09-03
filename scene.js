@@ -272,6 +272,24 @@ function buildExhibit(pen, key, W, H){
     SVG.ellipse(back, r()*W, y, 20 + r()*60, 5 + r()*12, sc.soil[1], .3);
   }
 
+  /* 展示場の奥の擁壁。岩を積んで、園路との境をつくる。 */
+  const wallY = horizon + H * .085;
+  for(let x = -30; x < W + 50; ){
+    const bw = 34 + r()*46, bh = bw * (.52 + r()*.3);
+    const tone = r();
+    const lit = tone < .5 ? sc.rock[0] : sc.soil[0];
+    const dark = tone < .5 ? sc.rock[1] : sc.soil[1];
+    const yy = wallY + (r()-.5) * H * .02;
+    SVG.path(back, `M${x},${yy+bh*.5} q${bw*.06},${-bh*1.35} ${bw*.52},${-bh*1.2}
+      q${bw*.62},${bh*.08} ${bw*.6},${bh*1.2}Z`, dark);
+    SVG.path(back, `M${x+bw*.06},${yy+bh*.42} q${bw*.06},${-bh*1.2} ${bw*.46},${-bh*1.05}
+      q${bw*.5},${bh*.06} ${bw*.5},${bh*1.05}Z`, lit);
+    SVG.path(back, `M${x+bw*.16},${yy-bh*.5} q${bw*.16},${-bh*.34} ${bw*.36},${-bh*.2}`,
+      'none', .34, '#FFFFFF', 3.5);
+    x += bw * .72;
+  }
+  SVG.rect(back, 0, wallY + H*.03, W, H*.02, '#3B3226', .12);
+
   /* 岩。同じ岩は二つとない。左上に光、右下に影。 */
   const rocks = 9 + Math.floor(r()*6);
   for(let i = 0; i < rocks; i++){
@@ -313,6 +331,8 @@ function buildExhibit(pen, key, W, H){
   }
 
   /* ---- 手前：柵とガラス ---- */
+  SVG.path(back, `M0,${fenceY-H*.10} q${W*.3},${-H*.02} ${W*.55},${H*.005}
+    q${W*.26},${H*.02} ${W*.45},${-H*.005} L${W},${H} L0,${H}Z`, sc.soil[1], .5);
   SVG.rect(back, 0, fenceY - 16, W, 16, '#3B3226', .12);   // 柵が地面に落とす影
   SVG.rect(front, 0, fenceY + 6, W, H - fenceY, '#DCE6E4', .16);
   SVG.rect(front, 0, fenceY + 6, W, 3, '#FFFFFF', .5);
@@ -339,11 +359,12 @@ function buildExhibit(pen, key, W, H){
   SVG.rect(sign, sx - 4, sy + 42, 8, 120, '#9AA3A5');
   SVG.path(sign, `M${sx},${sy-46} L${sx+46},${sy} L${sx},${sy+46} L${sx-46},${sy}Z`, '#D8A82E');
   SVG.path(sign, `M${sx},${sy-40} L${sx+40},${sy} L${sx},${sy+40} L${sx-40},${sy}Z`, '#F5CB55');
-  /* 跳ねているゴミの標識 */
-  SVG.path(sign, `M${sx-16},${sy+16} q${-3},${-22} ${7},${-28} q${9},${-6} ${18},0
-    q${10},${6} ${7},${28} q${-16},${6} ${-32},0Z`, '#3A3020');
-  SVG.path(sign, `M${sx-9},${sy-13} q${9},${-9} ${18},-2`, 'none', 1, '#F5CB55', 4);
-  SVG.ellipse(sign, sx, sy + 24, 17, 4, '#3A3020', .5);
+  /* 跳ねている包み紙の標識 */
+  SVG.path(sign, `M${sx-9},${sy-14} q${11},${-9} ${20},0 q${8},${11} ${1},${21}
+    q${-12},${7} ${-23},0 q${-7},${-11} ${2},${-21}Z`, '#3A3020');
+  SVG.path(sign, `M${sx-9},${sy-9} L${sx-24},${sy-19} L${sx-20},${sy-1}Z`, '#3A3020');
+  SVG.path(sign, `M${sx+11},${sy-7} L${sx+26},${sy-17} L${sx+23},${sy+1}Z`, '#3A3020');
+  SVG.ellipse(sign, sx, sy + 26, 15, 3.5, '#3A3020', .45);
   SVG.rect(sign, sx - 46, sy + 52, 92, 26, '#D8A82E', 1, 4);
   SVG.rect(sign, sx - 46, sy + 50, 92, 26, '#F5CB55', 1, 4);
   const t = SVG.make('text', sign, { x:sx, y:sy + 68, 'text-anchor':'middle',
@@ -351,18 +372,22 @@ function buildExhibit(pen, key, W, H){
   t.textContent = '入らないで';
 
   /* ---- 見に来ている人 ---- */
-  const crowd = SVG.make('g', front, {});
-  const count = Math.max(2, Math.round(sc.busy * W / 900));
+  const backRow = SVG.make('g', front, { opacity:.62 });
+  const frontRow = SVG.make('g', front, {});
+  const count = Math.max(3, Math.round(sc.busy * W / 760));
   const slots = [];
   for(let i = 0; i < count; i++){
+    const far = i % 3 === 2;                     // 三人にひとりは少し離れて見ている
     let x, guard = 0;
-    do { x = W * (.05 + r()*.9); guard++; }
-    while(guard < 40 && slots.some(v => Math.abs(v - x) < W * .12));
+    do { x = W * (.04 + r()*.92); guard++; }
+    while(guard < 40 && slots.some(v => Math.abs(v - x) < W * (far ? .07 : .13)));
     slots.push(x);
-    const scale = (H / 700) * (.68 + r()*.42);
     const pose = POSES[Math.floor(r() * POSES.length)];
-    const s = pose === 'kid' ? scale * .6 : scale;
-    drawVisitor(crowd, x, H + 34 * s, s, pose, sc.crowd[Math.floor(r()*sc.crowd.length)], r, fenceY);
+    let scale = (H / 700) * (far ? .42 + r()*.14 : .62 + r()*.34);
+    if(pose === 'kid') scale *= .62;
+    const groundY = far ? H - (H - fenceY) * .16 : H + 12 * scale;
+    drawVisitor(far ? backRow : frontRow, x, groundY, scale, pose,
+      sc.crowd[Math.floor(r()*sc.crowd.length)], r, fenceY);
   }
 
   pen.appendChild(back);
