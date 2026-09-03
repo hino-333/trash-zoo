@@ -113,11 +113,41 @@ body{
 }
 #enclosure-region{font-size:15px;font-weight:500;letter-spacing:.04em}
 #enclosure-sub{font-size:11px;opacity:.72;margin-top:2px;font-family:"JetBrains Mono",monospace}
+/* 展示場。奥（空〜地面）と手前（柵と人）の間に、ゴミたちが入る。 */
+.ex-back{position:absolute;left:0;top:0;z-index:0}
+.ex-front{position:absolute;left:0;top:0;z-index:900;pointer-events:none}
+@keyframes ex-cloud{0%{transform:translateX(-30%)}100%{transform:translateX(130%)}}
+@keyframes ex-tuft{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.ex-cloud{animation:ex-cloud linear infinite}
+.ex-tree{animation:sway 6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+.ex-tuft{animation:ex-tuft ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+.ex-sign{animation:sway-soft 7.2s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+
+/* 見ている人。じっと見る、身を乗り出す、写真を撮る、指をさす、子供が跳ねる。 */
+.visitor{transform-box:fill-box;transform-origin:50% 100%}
+@keyframes v-stand{0%,100%{transform:translateY(0) rotate(-.5deg)}50%{transform:translateY(-2px) rotate(.6deg)}}
+@keyframes v-lean{0%,100%{transform:translateY(0) rotate(0deg)}
+  38%{transform:translateY(-13px) rotate(-2.4deg)}70%{transform:translateY(-9px) rotate(-1.2deg)}}
+@keyframes v-photo{0%,100%{transform:translateY(0)}
+  30%{transform:translateY(-7px)}44%{transform:translateY(-8px) rotate(1deg)}}
+@keyframes v-point{0%,100%{transform:translateY(0) rotate(0deg)}45%{transform:translateY(-4px) rotate(1.6deg)}}
+@keyframes v-kid{0%,100%{transform:translateY(0)}
+  26%{transform:translateY(-26px)}46%{transform:translateY(0)}62%{transform:translateY(-14px)}78%{transform:translateY(0)}}
+@keyframes v-crouch{0%,100%{transform:translateY(0)}50%{transform:translateY(16px) scaleY(.94)}}
+@keyframes v-arm{0%,100%{transform:rotate(0deg)}40%{transform:rotate(-11deg)}}
+.pose-stand{animation:v-stand ease-in-out infinite}
+.pose-lean{animation:v-lean ease-in-out infinite}
+.pose-photo{animation:v-photo ease-in-out infinite}
+.pose-point{animation:v-point ease-in-out infinite}
+.pose-kid{animation:v-kid ease-in-out infinite}
+.pose-crouch{animation:v-crouch ease-in-out infinite}
+.pose-point .arm{animation:v-arm 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 50%}
+
 #pen{position:relative;flex:1;width:100%;max-width:1100px;align-self:center;
   margin:14px 12px calc(env(safe-area-inset-bottom) + 16px);
   border-radius:28px;overflow:hidden;
   box-shadow:inset 0 8px 26px rgba(40,40,30,.22),0 10px 26px rgba(20,40,40,.3)}
-#pen.hazed>.critter{filter:blur(9px);opacity:.45;pointer-events:none}
+#pen.hazed>*{filter:blur(8px);opacity:.6;pointer-events:none}
 #pen-hazed{position:absolute;inset:auto 0 0;top:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:6px;color:#fbf7ec;font-size:14px;
   text-shadow:0 1px 3px rgba(0,0,0,.4)}

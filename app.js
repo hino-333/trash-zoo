@@ -3,8 +3,12 @@
    評価も、名前も、自由記述もない。ここにあるのは他人の生活の証拠だけ。 */
 
 const CONFIG = {
-  // Claude API を叩くサーバー側エンドポイント。未設定ならローカルの暫定判定。
-  judgeEndpoint: null,
+  // 判定を行うサーバー側エンドポイント（api/judge.js）。
+  // API キーはサーバーにだけ置く。届かなければ暫定の飼育員が答える。
+  judgeEndpoint: (() => {
+    try { return localStorage.getItem('trashzoo.judge') || '/api/judge'; }
+    catch(e){ return '/api/judge'; }
+  })(),
   lifespanHours: 72,     // 工場に運ばれるまで
   ticketHours: 24,       // 入場券の有効時間
   peekLimit: 5,          // 初回だけ、支払う前に見られる数
@@ -537,45 +541,42 @@ function openPen(key){
 
   const pen = $('pen');
   pen.innerHTML = '';
-  pen.style.background =
-    `radial-gradient(120% 90% at 22% 12%, ${reg.accent} 0%, ${reg.ground} 46%, ${reg.shade} 100%)`;
+  const W = Math.round(pen.clientWidth || window.innerWidth - 24);
+  const H = Math.round(pen.clientHeight || window.innerHeight * .6);
+
+  /* 展示場。空、遠景、掘られた地面、手前のガラス柵、見に来ている人。 */
+  const { horizon, fenceY, sc } = buildExhibit(pen, key, W, H);
+  pen.style.background = sc.sky[1];
 
   const locked = !hasTicket() && !peekMode;
   const shown = peekMode && !hasTicket() ? list.slice(0, CONFIG.peekLimit) : list;
   pen.classList.toggle('hazed', locked);
   $('pen-hazed').hidden = !locked;
 
-  const W = pen.clientWidth || window.innerWidth - 24;
-  const H = pen.clientHeight || window.innerHeight * .6;
-  /* 放飼場の形に合わせて並べる。マスが正方形に近いほど、詰まって見えない。 */
-  const n = Math.max(1, shown.length);
-  const cols = clamp(Math.ceil(Math.sqrt(n * W / Math.max(H, 1))), 1, n);
-  const rows = Math.max(1, Math.ceil(n / cols));
-
-  /* 地面のむら。均一だと床材に見える。 */
-  for(let i = 0; i < 7; i++){
-    const t = document.createElement('div');
-    const w = 40 + Math.random()*110;
-    t.style.cssText = `position:absolute;left:${Math.random()*(W-w)}px;top:${40+Math.random()*(H-80)}px;`
-      + `width:${w}px;height:${w*(.34+Math.random()*.2)}px;border-radius:50%;`
-      + `background:${reg.shade};opacity:.34`;
-    pen.appendChild(t);
-  }
+  /* ゴミたちは地面の上、柵の手前には出ない。奥ほど小さい。 */
+  const bandTop = horizon + H * .07, bandBottom = fenceY - H * .07;
+  const base = clamp(Math.min(W / 4.6, H / 3.2), 96, 230);
+  const perRow = Math.max(2, Math.round(W / (base * 1.15)));
+  const rows = Math.max(1, Math.ceil(Math.max(1, shown.length) / perRow));
+  const rowH = (bandBottom - bandTop) / rows;
 
   shown.forEach((it, i) => {
-    const col = i % cols, row = Math.floor(i / cols);
-    const cw = W / cols, ch = (H - 110) / rows;
-    const size = clamp(Math.min(cw, ch) * .72, 82, 300) + (it.weight === 'heavy' ? 6 : 0);
-    const x = col * cw + cw/2 - size/2 + (Math.random()-.5) * cw * .3;
-    const y = 55 + row * ch + ch/2 - size/2 + (Math.random()-.5) * ch * .3;
+    const col = i % perRow, row = Math.floor(i / perRow);
+    const depth = rows === 1 ? .55 : row / (rows - 1);
+    const scale = .72 + depth * .46;
+    const size = Math.round(base * scale * (it.weight === 'heavy' ? 1.04 : 1));
+    const cw = W / perRow;
+    const x = col * cw + cw / 2 - size / 2 + (Math.random() - .5) * cw * .34;
+    const y = bandTop + row * rowH + rowH * .5 - size * .55 + (Math.random() - .5) * rowH * .28;
 
     const d = document.createElement('div');
     d.className = 'critter';
-    d.style.cssText = `left:${clamp(x, 6, W-size-6)}px;top:${clamp(y, 60, H-size-24)}px;width:${size}px;height:${size}px`;
+    d.style.cssText = `left:${clamp(x, 4, W-size-4)}px;top:${clamp(y, bandTop-size*.3, bandBottom-size*.6)}px;`
+      + `width:${size}px;height:${size}px;z-index:${Math.round(y) + 10}`;
 
     const sh = document.createElement('div');
     sh.className = 'cshadow';
-    sh.style.cssText = `width:${size*.62}px;height:${size*.18}px`;
+    sh.style.cssText = `width:${size*.6}px;height:${size*.17}px`;
     sh.style.animation = `squash-${it.weight} var(--per) ease-in-out infinite`;
     d.appendChild(sh);
 
@@ -734,15 +735,21 @@ function cutout(img){
  * ------------------------------------------------------------------ */
 async function judge(dataURL){
   if(CONFIG.judgeEndpoint){
-    const res = await fetch(CONFIG.judgeEndpoint, {
-      method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ image: dataURL })
-    });
-    if(!res.ok) throw new Error('judge failed');
-    return res.json();
+    try{
+      const res = await fetch(CONFIG.judgeEndpoint, {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ image: dataURL })
+      });
+      if(res.ok) return await res.json();
+      /* 判定そのものが「食べ物のゴミではない」と答えた場合は、そのまま返る。
+         ここに来るのは、飼育員が不在（未デプロイ・キー未設定）のとき。 */
+      console.warn('judge endpoint returned', res.status, '- 暫定の飼育員が答えます');
+    }catch(e){
+      console.warn('judge endpoint unreachable:', e.message, '- 暫定の飼育員が答えます');
+    }
   }
-  /* 暫定。サーバー側が繋がるまでの仮の飼育員。judge-prompt.md 参照。 */
-  await new Promise(r => setTimeout(r, 1500));
+  /* 暫定。api/judge.js が繋がるまでの仮の飼育員。judge-prompt.md 参照。 */
+  await new Promise(r => setTimeout(r, 1200));
   return {
     is_food_waste:true, name:'食べ物の包み', category:'その他', weight_class:'light',
     keeper_note:'中身は食べ終えられています。包みの内側に油と甘みの跡が残っています。',

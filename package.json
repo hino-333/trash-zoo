@@ -1,0 +1,10 @@
+{
+  "name": "trash-zoo",
+  "private": true,
+  "type": "module",
+  "description": "食べ物のゴミを1つ放した人だけが、他の人のゴミを見られる場所",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
+    "zod": "^4.5.4"
+  }
+}
