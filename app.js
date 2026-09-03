@@ -554,8 +554,8 @@ function openPen(key){
   $('pen-hazed').hidden = !locked;
 
   /* ゴミたちは地面の上、柵の手前には出ない。奥ほど小さい。 */
-  const bandTop = horizon + H * .07, bandBottom = fenceY - H * .07;
-  const base = clamp(Math.min(W / 4.6, H / 3.2), 96, 230);
+  const bandTop = horizon + H * .155, bandBottom = fenceY - H * .05;
+  const base = clamp(Math.min(W / 4.8, H / 3.6), 92, 205);
   const perRow = Math.max(2, Math.round(W / (base * 1.15)));
   const rows = Math.max(1, Math.ceil(Math.max(1, shown.length) / perRow));
   const rowH = (bandBottom - bandTop) / rows;
@@ -563,11 +563,11 @@ function openPen(key){
   shown.forEach((it, i) => {
     const col = i % perRow, row = Math.floor(i / perRow);
     const depth = rows === 1 ? .55 : row / (rows - 1);
-    const scale = .72 + depth * .46;
+    const scale = .74 + depth * .40;
     const size = Math.round(base * scale * (it.weight === 'heavy' ? 1.04 : 1));
     const cw = W / perRow;
-    const x = col * cw + cw / 2 - size / 2 + (Math.random() - .5) * cw * .34;
-    const y = bandTop + row * rowH + rowH * .5 - size * .55 + (Math.random() - .5) * rowH * .28;
+    const x = col * cw + cw / 2 - size / 2 + (Math.random() - .5) * cw * .2;
+    const y = bandTop + row * rowH + rowH * .5 - size * .55 + (Math.random() - .5) * rowH * .22;
 
     const d = document.createElement('div');
     d.className = 'critter';
