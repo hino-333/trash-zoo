@@ -255,23 +255,6 @@ function buildMap(){
   el('feGaussianBlur', { stdDeviation:26 }, blur2);
   const clipG = el('clipPath', { id:'islandclip' }, defs);
 
-  /* 海 */
-  el('rect', { x:0, y:0, width:900, height:VB_H, fill:'var(--sea)' }, svg);
-
-  /* 波。ゆっくり流れる。 */
-  const waves = el('g', { opacity:.5 }, svg);
-  for(let i = 0; i < 32; i++){
-    const y = 30 + r() * (VB_H - 60), x = -140 + r() * 1040;
-    const w = 30 + r() * 46;
-    const g = el('g', { class:'waveline' }, waves);
-    g.style.animationDuration = (7 + r()*7).toFixed(1) + 's';
-    g.style.animationDelay = (-r()*9).toFixed(1) + 's';
-    el('path', { d:`M${x},${y} q${w/2},-6 ${w},0`, stroke:'var(--wave)', 'stroke-width':4,
-      'stroke-linecap':'round', fill:'none' }, g);
-    el('path', { d:`M${x+w+16},${y+9} q${w/3},-5 ${w*.66},0`, stroke:'var(--wave)',
-      'stroke-width':3.5, 'stroke-linecap':'round', fill:'none', opacity:.7 }, g);
-  }
-
   /* 島 —— 砂浜のフチ → 芝 */
   const sandPts  = wobblyBlob(ISLAND.cx, ISLAND.cy, ISLAND.rx, ISLAND.ry, .055, 30, r);
   const sandPath = smooth(sandPts);
@@ -345,6 +328,34 @@ function buildMap(){
     g.style.animationDelay = (-i * 13) + 's';
     el('path', { d:smooth(wobblyBlob(0, 320 + i*400, 190, 110, .4, 10, r)),
       fill:'#2B3A2A', filter:'url(#cloudblur)' }, g);
+  }
+}
+
+/* 画面いっぱいの海。島の周りがどれだけ空いても、波は流れ続ける。 */
+function buildSea(){
+  let sea = document.getElementById('sea');
+  if(!sea){
+    sea = document.createElementNS(NS, 'svg');
+    sea.id = 'sea';
+    document.body.insertBefore(sea, document.body.firstChild);
+  }
+  const w = window.innerWidth, h = window.innerHeight;
+  sea.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  sea.innerHTML = '';
+  const r = rng(90210);
+  el('rect', { x:0, y:0, width:w, height:h, fill:'var(--sea)' }, sea);
+  const waves = el('g', { opacity:.5 }, sea);
+  const n = Math.round(w * h / 22000);
+  for(let i = 0; i < n; i++){
+    const y = r() * h, x = -140 + r() * (w + 160);
+    const ww = 26 + r() * 40;
+    const g = el('g', { class:'waveline' }, waves);
+    g.style.animationDuration = (7 + r()*7).toFixed(1) + 's';
+    g.style.animationDelay = (-r()*9).toFixed(1) + 's';
+    el('path', { d:`M${x},${y} q${ww/2},-6 ${ww},0`, stroke:'var(--wave)', 'stroke-width':4,
+      'stroke-linecap':'round', fill:'none' }, g);
+    el('path', { d:`M${x+ww+16},${y+9} q${ww/3},-5 ${ww*.66},0`, stroke:'var(--wave)',
+      'stroke-width':3.5, 'stroke-linecap':'round', fill:'none', opacity:.7 }, g);
   }
 }
 
@@ -816,6 +827,7 @@ $('post-peek').addEventListener('click', () => {
 $('notice-ok').addEventListener('click', () => { $('notice').hidden = true; });
 
 function boot(){
+  buildSea();
   buildMap();
   refreshTicketBar();
   requestAnimationFrame(tickVisitors);
@@ -832,5 +844,12 @@ function boot(){
   const stage = $('map-stage');
   stage.scrollTop = (stage.scrollHeight - stage.clientHeight) * .35;
 }
-window.addEventListener('resize', () => { if(!$('enclosure').hidden && openKey) openPen(openKey); });
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    buildSea();
+    if(!$('enclosure').hidden && openKey) openPen(openKey);
+  }, 200);
+});
 boot();
