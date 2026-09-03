@@ -51,6 +51,11 @@ body{
   display:flex;align-items:center;
 }
 #map{display:block;width:114%;margin:0 -7%;height:auto;flex:0 0 auto}
+/* 横長の画面では、島を高さに合わせて全体を見せる。海が左右を囲む。 */
+@media (min-aspect-ratio: 62/100){
+  #map{width:auto;height:94%;max-height:94vh;margin:0}
+  #map-tilt{justify-content:center}
+}
 .tap{cursor:pointer}
 
 /* 島の呼吸 */
@@ -107,7 +112,8 @@ body{
 }
 #enclosure-region{font-size:15px;font-weight:500;letter-spacing:.04em}
 #enclosure-sub{font-size:11px;opacity:.72;margin-top:2px;font-family:"JetBrains Mono",monospace}
-#pen{position:relative;flex:1;margin:14px 12px calc(env(safe-area-inset-bottom) + 16px);
+#pen{position:relative;flex:1;width:100%;max-width:1100px;align-self:center;
+  margin:14px 12px calc(env(safe-area-inset-bottom) + 16px);
   border-radius:28px;overflow:hidden;
   box-shadow:inset 0 8px 26px rgba(40,40,30,.22),0 10px 26px rgba(20,40,40,.3)}
 #pen.hazed>.critter{filter:blur(9px);opacity:.45;pointer-events:none}
@@ -152,7 +158,7 @@ body{
 /* 個体詳細 */
 #detail{background:rgba(38,54,52,.72);backdrop-filter:blur(3px);
   align-items:center;justify-content:center;gap:22px;padding:24px}
-#detail-stage{position:relative;height:190px;display:flex;align-items:flex-end;justify-content:center}
+#detail-stage{position:relative;height:clamp(190px,34vh,380px);display:flex;align-items:flex-end;justify-content:center}
 #detail-stage .body{filter:drop-shadow(0 10px 12px rgba(20,30,30,.35))}
 #detail-plate{
   width:min(420px,100%);background:var(--plate);color:var(--plate-text);

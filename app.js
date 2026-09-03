@@ -536,8 +536,10 @@ function openPen(key){
 
   const W = pen.clientWidth || window.innerWidth - 24;
   const H = pen.clientHeight || window.innerHeight * .6;
-  const cols = shown.length > 6 ? 3 : 2;
-  const rows = Math.max(1, Math.ceil(shown.length / cols));
+  /* 放飼場の形に合わせて並べる。マスが正方形に近いほど、詰まって見えない。 */
+  const n = Math.max(1, shown.length);
+  const cols = clamp(Math.round(Math.sqrt(n * W / Math.max(H, 1))), 1, n);
+  const rows = Math.max(1, Math.ceil(n / cols));
 
   /* 地面のむら。均一だと床材に見える。 */
   for(let i = 0; i < 7; i++){
@@ -550,9 +552,9 @@ function openPen(key){
   }
 
   shown.forEach((it, i) => {
-    const size = 82 + (it.weight === 'heavy' ? 6 : 0);
     const col = i % cols, row = Math.floor(i / cols);
     const cw = W / cols, ch = (H - 110) / rows;
+    const size = clamp(Math.min(cw, ch) * .66, 82, 260) + (it.weight === 'heavy' ? 6 : 0);
     const x = col * cw + cw/2 - size/2 + (Math.random()-.5) * cw * .3;
     const y = 55 + row * ch + ch/2 - size/2 + (Math.random()-.5) * ch * .3;
 
@@ -589,7 +591,8 @@ function openPen(key){
 function openDetail(it){
   const stage = $('detail-stage');
   stage.innerHTML = '';
-  const body = critterSVG(it, 150);
+  const big = clamp(Math.min(window.innerWidth, window.innerHeight) * .3, 150, 330);
+  const body = critterSVG(it, big);
   body.style.animation = `hop-${it.weight} 2.4s ease-in-out infinite`;
   stage.appendChild(body);
   $('detail-name').textContent = it.name;
