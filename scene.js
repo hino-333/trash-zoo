@@ -168,7 +168,7 @@ const SVG = {
 /* 見に来ている人。顔も名前もない。姿勢と動きだけが違う。 */
 const POSES = ['stand', 'lean', 'photo', 'point', 'kid', 'crouch'];
 
-function drawVisitor(parent, x, groundY, scale, pose, color, r){
+function drawVisitor(parent, x, groundY, scale, pose, color, r, railY){
   const g = SVG.make('g', parent, { class:'visitor pose-' + pose });
   g.style.animationDuration = (3.4 + r()*3.6).toFixed(2) + 's';
   g.style.animationDelay = (-r()*6).toFixed(2) + 's';
@@ -195,6 +195,17 @@ function drawVisitor(parent, x, groundY, scale, pose, color, r){
     SVG.path(inner, `M${-46*s},${bodyTop+44*s} q${-24*s},${26*s} ${-6*s},${44*s}`,
       'none', 1, color, 15*s);
   }
+  /* 柵に手をかけて覗き込む。 */
+  if((pose === 'stand' || pose === 'lean' || pose === 'kid') && railY != null && r() < .7){
+    const reach = Math.min(groundY - railY - 8, 120 * s);
+    if(reach > 18){
+      SVG.path(inner, `M${-40*s},${groundY-56*s} q${-10*s},${-reach*.5} ${4*s},${-reach}`,
+        'none', .95, color, 14*s);
+      SVG.path(inner, `M${40*s},${groundY-56*s} q${10*s},${-reach*.5} ${-4*s},${-reach}`,
+        'none', .95, color, 14*s);
+    }
+  }
+
   /* 帽子・髪・鞄。人ごとの差はここだけ。 */
   const hat = r();
   if(hat < .22) SVG.path(inner, `M${-headR*1.5},${bodyTop-headR*.5} q${headR*1.5},${-headR*.9} ${headR*3},0Z`, color, 1);
@@ -261,36 +272,56 @@ function buildExhibit(pen, key, W, H){
     SVG.ellipse(back, r()*W, y, 20 + r()*60, 5 + r()*12, sc.soil[1], .3);
   }
 
-  /* 岩。左上に光、右下に影。 */
-  const rocks = 7 + Math.floor(r()*5);
+  /* 岩。同じ岩は二つとない。左上に光、右下に影。 */
+  const rocks = 9 + Math.floor(r()*6);
   for(let i = 0; i < rocks; i++){
     const y = horizon + H*.04 + r() * (fenceY - horizon - H*.12);
     const x = r() * W;
     const depth = (y - horizon) / (fenceY - horizon);
-    const rw = (26 + r()*46) * (.6 + depth*.9), rh = rw * (.5 + r()*.3);
-    SVG.ellipse(back, x + rw*.2, y + rh*.55, rw*.95, rh*.3, '#3B3226', .18);
-    SVG.path(back, `M${x-rw},${y+rh*.4} q${rw*.1},${-rh*1.5} ${rw*.9},${-rh*1.3}
-      q${rw*1.1},${rh*.1} ${rw*1.1},${rh*1.3}Z`, sc.rock[1]);
-    SVG.path(back, `M${x-rw*.9},${y+rh*.3} q${rw*.1},${-rh*1.35} ${rw*.8},${-rh*1.2}
-      q${rw*.6},${rh*.1} ${rw*.7},${rh*.8}Z`, sc.rock[0]);
-    SVG.path(back, `M${x-rw*.7},${y-rh*.35} q${rw*.3},${-rh*.5} ${rw*.7},${-rh*.35}`,
-      'none', .5, '#FFFFFF', 4);
+    const rw = (12 + r()*24) * (.55 + depth*.95), rh = rw * (.34 + r()*.36);
+    const tone = r();
+    const lit = tone < .35 ? sc.rock[0] : (tone < .7 ? sc.soil[0] : sc.rock[1]);
+    const dark = tone < .7 ? sc.rock[1] : sc.soil[1];
+    /* 縁を崩す。楕円のままだと石に見えない。 */
+    const steps = 9, jit = [];
+    for(let k = 0; k < steps; k++) jit.push(1 + (r() - .5) * .34);
+    const shape = (kx, ky, f) => jit.map((j, k) => {
+      const t = k / steps * Math.PI * 2;
+      return (k ? 'L' : 'M') + (x + kx + Math.cos(t) * rw * j * f).toFixed(1)
+        + ',' + (y - rh*.2 + ky + Math.sin(t) * rh * j * f).toFixed(1);
+    }).join('') + 'Z';
+    SVG.ellipse(back, x + rw*.25, y + rh*.5, rw*.95, rh*.32, '#3B3226', .16);
+    SVG.path(back, shape(0, 0, 1), dark);
+    SVG.path(back, shape(-rw*.08, -rh*.14, .88), lit);
+    SVG.path(back, `M${x-rw*.5},${y-rh*.5} q${rw*.35},${-rh*.42} ${rw*.7},${-rh*.2}`,
+      'none', .38, '#FFFFFF', Math.max(2, rw*.14));
   }
 
-  /* 草むら。掘られた地面の隙間に生える。 */
-  for(let i = 0; i < 26; i++){
+  /* 草むら。まばらに、奥ほど小さく。 */
+  for(let i = 0; i < 17; i++){
     const y = horizon + H*.05 + r() * (fenceY - horizon - H*.08);
-    const x = r() * W, k = .7 + (y - horizon) / (fenceY - horizon);
+    const x = r() * W, k = (.55 + (y - horizon) / (fenceY - horizon) * .8) * (.7 + r()*.7);
     const g = SVG.make('g', back, { class:'ex-tuft' });
     g.style.animationDuration = (3 + r()*3).toFixed(1) + 's';
     g.style.animationDelay = (-r()*5).toFixed(1) + 's';
-    for(let b = -2; b <= 2; b++)
-      SVG.path(g, `M${x},${y} q${b*4*k},${-9*k} ${b*7*k},${-19*k}`, 'none', .9, sc.plant, 3*k);
+    const blades = 3 + Math.floor(r()*3);
+    for(let b = 0; b < blades; b++){
+      const dir = (b - (blades-1)/2) * (.7 + r()*.8);
+      SVG.path(g, `M${x},${y} q${dir*4*k},${-9*k} ${dir*7*k},${-(14+r()*12)*k}`,
+        'none', .55 + r()*.4, sc.plant, 2.4*k);
+    }
   }
 
   /* ---- 手前：柵とガラス ---- */
+  SVG.rect(back, 0, fenceY - 16, W, 16, '#3B3226', .12);   // 柵が地面に落とす影
   SVG.rect(front, 0, fenceY + 6, W, H - fenceY, '#DCE6E4', .16);
   SVG.rect(front, 0, fenceY + 6, W, 3, '#FFFFFF', .5);
+  /* ガラスの映り込み */
+  for(let i = 0; i < 3; i++){
+    const gx = W * (.08 + i * .34);
+    SVG.path(front, `M${gx},${H} L${gx + 90},${fenceY + 8} L${gx + 132},${fenceY + 8} L${gx + 42},${H}Z`,
+      '#FFFFFF', .09);
+  }
   const posts = Math.max(3, Math.round(W / 190));
   for(let i = 0; i <= posts; i++){
     const x = i * (W / posts);
@@ -308,8 +339,11 @@ function buildExhibit(pen, key, W, H){
   SVG.rect(sign, sx - 4, sy + 42, 8, 120, '#9AA3A5');
   SVG.path(sign, `M${sx},${sy-46} L${sx+46},${sy} L${sx},${sy+46} L${sx-46},${sy}Z`, '#D8A82E');
   SVG.path(sign, `M${sx},${sy-40} L${sx+40},${sy} L${sx},${sy+40} L${sx-40},${sy}Z`, '#F5CB55');
-  SVG.path(sign, `M${sx-13},${sy+9} q${13},${-30} ${26},0 q${-13},${9} ${-26},0Z`, '#3A3020');
-  SVG.rect(sign, sx - 12, sy - 20, 24, 16, '#3A3020', 1, 6);
+  /* 跳ねているゴミの標識 */
+  SVG.path(sign, `M${sx-16},${sy+16} q${-3},${-22} ${7},${-28} q${9},${-6} ${18},0
+    q${10},${6} ${7},${28} q${-16},${6} ${-32},0Z`, '#3A3020');
+  SVG.path(sign, `M${sx-9},${sy-13} q${9},${-9} ${18},-2`, 'none', 1, '#F5CB55', 4);
+  SVG.ellipse(sign, sx, sy + 24, 17, 4, '#3A3020', .5);
   SVG.rect(sign, sx - 46, sy + 52, 92, 26, '#D8A82E', 1, 4);
   SVG.rect(sign, sx - 46, sy + 50, 92, 26, '#F5CB55', 1, 4);
   const t = SVG.make('text', sign, { x:sx, y:sy + 68, 'text-anchor':'middle',
@@ -325,10 +359,10 @@ function buildExhibit(pen, key, W, H){
     do { x = W * (.05 + r()*.9); guard++; }
     while(guard < 40 && slots.some(v => Math.abs(v - x) < W * .12));
     slots.push(x);
-    const scale = (H / 620) * (.72 + r()*.5);
+    const scale = (H / 700) * (.68 + r()*.42);
     const pose = POSES[Math.floor(r() * POSES.length)];
-    const s = pose === 'kid' ? scale * .62 : scale;
-    drawVisitor(crowd, x, H + 26 * s, s, pose, sc.crowd[Math.floor(r()*sc.crowd.length)], r);
+    const s = pose === 'kid' ? scale * .6 : scale;
+    drawVisitor(crowd, x, H + 34 * s, s, pose, sc.crowd[Math.floor(r()*sc.crowd.length)], r, fenceY);
   }
 
   pen.appendChild(back);
