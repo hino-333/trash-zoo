@@ -564,9 +564,9 @@ function openPen(key){
     const col = i % perRow, row = Math.floor(i / perRow);
     const depth = rows === 1 ? .55 : row / (rows - 1);
     const scale = .74 + depth * .40;
-    const size = Math.round(base * scale * (it.weight === 'heavy' ? 1.04 : 1));
     const cw = W / perRow;
-    const x = col * cw + cw / 2 - size / 2 + (Math.random() - .5) * cw * .2;
+    const size = Math.round(Math.min(base * scale * (it.weight === 'heavy' ? 1.04 : 1), cw * .84));
+    const x = col * cw + cw / 2 - size / 2 + (Math.random() - .5) * cw * .14;
     const y = bandTop + row * rowH + rowH * .5 - size * .55 + (Math.random() - .5) * rowH * .22;
 
     const d = document.createElement('div');

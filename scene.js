@@ -354,8 +354,10 @@ function buildExhibit(pen, key, W, H){
   /* 注意書き。淡々と置く。画面が狭いときは小さくする。 */
   const sk = Math.max(.6, Math.min(1, W / 900));
   const sx = W - 76 * sk, sy = fenceY - 92 * sk;
-  const sign = SVG.make('g', front, { class:'ex-sign',
+  /* 位置は外側の g、揺れは内側の g。CSS の transform が位置を上書きしないように。 */
+  const signPos = SVG.make('g', front, {
     transform:`translate(${sx},${sy}) scale(${sk.toFixed(3)})` });
+  const sign = SVG.make('g', signPos, { class:'ex-sign' });
   SVG.rect(sign, -4, 42, 8, 130, '#9AA3A5');
   SVG.path(sign, `M0,-46 L46,0 L0,46 L-46,0Z`, '#D8A82E');
   SVG.path(sign, `M0,-40 L40,0 L0,40 L-40,0Z`, '#F5CB55');
