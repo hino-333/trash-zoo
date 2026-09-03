@@ -351,19 +351,19 @@ function buildExhibit(pen, key, W, H){
   SVG.rect(front, 0, fenceY - 10, W, 4, '#E4EAEA', .95);
   SVG.rect(front, 0, fenceY + 2, W, 5, '#3B3226', .12);
 
-  /* 注意書き。淡々と置く。 */
-  const sx = W * .84, sy = fenceY - 96;
-  const sign = SVG.make('g', front, { class:'ex-sign' });
-  SVG.rect(sign, sx - 4, sy + 42, 8, 120, '#9AA3A5');
-  SVG.path(sign, `M${sx},${sy-46} L${sx+46},${sy} L${sx},${sy+46} L${sx-46},${sy}Z`, '#D8A82E');
-  SVG.path(sign, `M${sx},${sy-40} L${sx+40},${sy} L${sx},${sy+40} L${sx-40},${sy}Z`, '#F5CB55');
-  /* 跳ねている包み紙の標識 */
-  SVG.path(sign, `M${sx-17},${sy+14} q${-4},${-24} ${8},${-30} q${-2},${-8} ${4},${-10}
-    q${5},${9} ${9},${1} q${13},${5} ${9},${39} q${-15},${8} ${-30},0Z`, '#3A3020');
-  SVG.ellipse(sign, sx, sy + 24, 16, 4, '#3A3020', .4);
-  SVG.rect(sign, sx - 46, sy + 52, 92, 26, '#D8A82E', 1, 4);
-  SVG.rect(sign, sx - 46, sy + 50, 92, 26, '#F5CB55', 1, 4);
-  const t = SVG.make('text', sign, { x:sx, y:sy + 68, 'text-anchor':'middle',
+  /* 注意書き。淡々と置く。画面が狭いときは小さくする。 */
+  const sk = Math.max(.6, Math.min(1, W / 900));
+  const sx = W - 76 * sk, sy = fenceY - 92 * sk;
+  const sign = SVG.make('g', front, { class:'ex-sign',
+    transform:`translate(${sx},${sy}) scale(${sk.toFixed(3)})` });
+  SVG.rect(sign, -4, 42, 8, 130, '#9AA3A5');
+  SVG.path(sign, `M0,-46 L46,0 L0,46 L-46,0Z`, '#D8A82E');
+  SVG.path(sign, `M0,-40 L40,0 L0,40 L-40,0Z`, '#F5CB55');
+  SVG.path(sign, `M-17,14 q-4,-24 8,-30 q-2,-8 4,-10 q5,9 9,1 q13,5 9,39 q-15,8 -30,0Z`, '#3A3020');
+  SVG.ellipse(sign, 0, 24, 16, 4, '#3A3020', .4);
+  SVG.rect(sign, -46, 52, 92, 26, '#D8A82E', 1, 4);
+  SVG.rect(sign, -46, 50, 92, 26, '#F5CB55', 1, 4);
+  const t = SVG.make('text', sign, { x:0, y:68, 'text-anchor':'middle',
     'font-size':15, fill:'#6B5312', 'font-family':'"Noto Sans JP",sans-serif' });
   t.textContent = '入らないで';
 
@@ -388,5 +388,5 @@ function buildExhibit(pen, key, W, H){
 
   pen.appendChild(back);
   pen.appendChild(front);
-  return { horizon, fenceY, sc };
+  return { horizon, fenceY, sc, signLeft: sx - 48 * sk };
 }

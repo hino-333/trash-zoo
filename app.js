@@ -545,7 +545,7 @@ function openPen(key){
   const H = Math.round(pen.clientHeight || window.innerHeight * .6);
 
   /* 展示場。空、遠景、掘られた地面、手前のガラス柵、見に来ている人。 */
-  const { horizon, fenceY, sc } = buildExhibit(pen, key, W, H);
+  const { horizon, fenceY, sc, signLeft } = buildExhibit(pen, key, W, H);
   pen.style.background = sc.sky[1];
 
   const locked = !hasTicket() && !peekMode;
@@ -571,7 +571,7 @@ function openPen(key){
 
     const d = document.createElement('div');
     d.className = 'critter';
-    d.style.cssText = `left:${clamp(x, 4, W-size-4)}px;top:${clamp(y, bandTop-size*.3, bandBottom-size*.6)}px;`
+    d.style.cssText = `left:${clamp(x, 4, Math.max(4, Math.min(W-size-4, signLeft-size*.45)))}px;top:${clamp(y, bandTop-size*.3, bandBottom-size*.6)}px;`
       + `width:${size}px;height:${size}px;z-index:${Math.round(y) + 10}`;
 
     const sh = document.createElement('div');
