@@ -620,14 +620,13 @@ function openDetail(it){
  * ------------------------------------------------------------------ */
 function refreshTicketBar(){
   const bar = $('ticket-text'), btn = $('ticket-action');
-  if(hasTicket()){
-    const h = Math.ceil((store.ticketUntil - now()) / HOUR);
-    bar.textContent = `入場券 残り ${h} 時間`;
-    btn.hidden = true;
-  }else{
-    bar.textContent = '今日はまだ入場券がありません';
-    btn.hidden = false;
-  }
+  const has = hasTicket();
+  /* 入場券があっても出口は塞がない。ただし急かさない。 */
+  bar.textContent = has
+    ? `入場券 残り ${Math.ceil((store.ticketUntil - now()) / HOUR)} 時間`
+    : '今日はまだ入場券がありません';
+  btn.hidden = false;
+  btn.classList.toggle('quiet', has);
   $('hud-today').textContent = store.items.filter(
     i => new Date(i.createdAt).toDateString() === new Date().toDateString()).length;
 }
@@ -635,7 +634,10 @@ function refreshTicketBar(){
 function openGate(){
   $('post').hidden = false;
   showStep('intro');
-  $('post-peek').hidden = store.peeked;
+  $('gate-title').textContent = hasTicket()
+    ? 'ゴミを放す'
+    : '今日はまだ入場券がありません';
+  $('post-peek').hidden = store.peeked || hasTicket();
 }
 function showStep(name){
   ['intro','cut','judge','sent'].forEach(s => $('post-step-' + s).hidden = (s !== name));

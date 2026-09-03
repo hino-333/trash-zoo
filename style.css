@@ -87,6 +87,10 @@ body{
   cursor:pointer;
 }
 #ticket-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--sign-shade)}
+/* 入場券を持っているあいだは、あるが目立たない。 */
+#ticket-bar button.quiet{color:#fbf7ec;background:rgba(255,255,255,.16);
+  box-shadow:0 2px 0 rgba(40,120,118,.45)}
+#ticket-bar button.quiet:active{box-shadow:0 1px 0 rgba(40,120,118,.45)}
 
 /* ---------- overlays ---------- */
 .overlay{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column}
