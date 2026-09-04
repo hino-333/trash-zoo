@@ -633,6 +633,7 @@ function refreshTicketBar(){
 
 function openGate(){
   $('post').hidden = false;
+  loadSegmenter().catch(() => {});   // 撮っている間に用意しておく
   showStep('intro');
   $('gate-title').textContent = hasTicket()
     ? 'ゴミを放す'
@@ -646,30 +647,135 @@ function showStep(name){
 /* ------------------------------------------------------------------ *
  * 撮影 → 自動切り抜き
  * 加工手段は与えない。「これでいい / 撮り直す」だけ。
+ * 切り抜きは U2-Netp（4.4MB）で行う。色の近い背景でも対象だけを残せる。
  * ------------------------------------------------------------------ */
+const CUT = {
+  ortURL:'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.mjs',
+  wasmPath:'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/',
+  model:'models/u2netp.onnx',
+  size:320
+};
 let cutDataURL = null;
+let sessionPromise = null;
+
+/* モデルは投稿画面を開いた時点で読み始める。撮っている間に用意が終わる。 */
+function loadSegmenter(){
+  if(sessionPromise) return sessionPromise;
+  sessionPromise = (async () => {
+    const ort = await import(CUT.ortURL);
+    ort.env.wasm.wasmPaths = CUT.wasmPath;
+    ort.env.logLevel = 'error';
+    let session;
+    try{
+      session = await ort.InferenceSession.create(CUT.model, { executionProviders:['webgpu'] });
+    }catch(e){
+      session = await ort.InferenceSession.create(CUT.model, { executionProviders:['wasm'] });
+    }
+    return { ort, session };
+  })();
+  sessionPromise.catch(() => { sessionPromise = null; });
+  return sessionPromise;
+}
 
 $('post-file').addEventListener('change', e => {
   const f = e.target.files && e.target.files[0];
   e.target.value = '';
   if(!f) return;
   const img = new Image();
-  img.onload = () => { cutout(img); showStep('cut'); };
+  img.onload = async () => {
+    showStep('judge');
+    $('judge-title').textContent = '切り抜いています';
+    $('judge-error').hidden = true; $('judge-back').hidden = true; $('judge-dots').hidden = false;
+    try{
+      await cutout(img);
+    }catch(err){
+      console.warn('切り抜きに失敗:', err);
+    }
+    URL.revokeObjectURL(img.src);
+    showStep('cut');
+  };
   img.src = URL.createObjectURL(f);
 });
 
-function cutout(img){
-  const max = 560;
+async function cutout(img){
+  const max = 900;
   const sc = Math.min(1, max / Math.max(img.width, img.height));
   const w = Math.round(img.width * sc), h = Math.round(img.height * sc);
   const cv = document.createElement('canvas');
   cv.width = w; cv.height = h;
   const ctx = cv.getContext('2d', { willReadFrequently:true });
   ctx.drawImage(img, 0, 0, w, h);
-  const im = ctx.getImageData(0, 0, w, h), px = im.data;
 
-  /* 縁の色を基準に、そこから繋がった範囲を消す。
-     隣どうしの比較だけで広げると、輪郭のぼけを伝って対象まで食われる。 */
+  let alpha = null;
+  try{
+    alpha = await segment(img, w, h);
+  }catch(e){
+    console.warn('モデルが使えないので、縁の色から切り抜きます:', e.message);
+  }
+
+  const im = ctx.getImageData(0, 0, w, h), px = im.data;
+  if(alpha){
+    for(let i = 0; i < w*h; i++) px[i*4+3] = alpha[i];
+  }else{
+    fallbackCut(px, w, h);
+  }
+  ctx.putImageData(im, 0, 0);
+  finishCut(cv, px, w, h);
+}
+
+/* U2-Netp。320x320 に潰して推論し、出たマスクを元の大きさに戻す。 */
+async function segment(img, w, h){
+  const { ort, session } = await loadSegmenter();
+  const S = CUT.size;
+  const small = document.createElement('canvas');
+  small.width = S; small.height = S;
+  const sctx = small.getContext('2d', { willReadFrequently:true });
+  sctx.drawImage(img, 0, 0, S, S);
+  const d = sctx.getImageData(0, 0, S, S).data;
+
+  const mean = [.485, .456, .406], std = [.229, .224, .225];
+  const N = S * S, input = new Float32Array(3 * N);
+  for(let i = 0; i < N; i++){
+    input[i]         = (d[i*4]   / 255 - mean[0]) / std[0];
+    input[i + N]     = (d[i*4+1] / 255 - mean[1]) / std[1];
+    input[i + 2*N]   = (d[i*4+2] / 255 - mean[2]) / std[2];
+  }
+  const out = await session.run({
+    [session.inputNames[0]]: new ort.Tensor('float32', input, [1, 3, S, S]) });
+  const m = out[session.outputNames[0]].data;
+
+  let mn = Infinity, mx = -Infinity;
+  for(let i = 0; i < N; i++){ if(m[i] < mn) mn = m[i]; if(m[i] > mx) mx = m[i]; }
+  const span = (mx - mn) || 1;
+
+  /* マスクを画像に戻し、ブラウザの補間で元の大きさへ引き伸ばす。 */
+  const mc = document.createElement('canvas');
+  mc.width = S; mc.height = S;
+  const mctx = mc.getContext('2d');
+  const mi = mctx.createImageData(S, S);
+  for(let i = 0; i < N; i++){
+    /* 端をなだらかに。硬く切ると紙の縁が階段になる。 */
+    const t = clamp(((m[i] - mn) / span - .34) / .30, 0, 1);
+    const v = Math.round(t * t * (3 - 2 * t) * 255);
+    mi.data[i*4] = mi.data[i*4+1] = mi.data[i*4+2] = v;
+    mi.data[i*4+3] = 255;
+  }
+  mctx.putImageData(mi, 0, 0);
+
+  const big = document.createElement('canvas');
+  big.width = w; big.height = h;
+  const bctx = big.getContext('2d', { willReadFrequently:true });
+  bctx.imageSmoothingEnabled = true;
+  bctx.imageSmoothingQuality = 'high';
+  bctx.drawImage(mc, 0, 0, w, h);
+  const bd = bctx.getImageData(0, 0, w, h).data;
+  const alpha = new Uint8ClampedArray(w * h);
+  for(let i = 0; i < w*h; i++) alpha[i] = bd[i*4];
+  return alpha;
+}
+
+/* 保険。モデルが読めないときだけ使う、縁の色を基準にした領域拡張。 */
+function fallbackCut(px, w, h){
   const seen = new Uint8Array(w*h);
   const at = (x,y) => (y*w + x)*4;
   let br = 0, bg = 0, bb = 0, bn = 0;
@@ -684,7 +790,6 @@ function cutout(img){
   dev /= bn;
   const TOL = clamp(dev * 2.2 + 70, 90, 240);
   const near = p => Math.abs(px[p]-br) + Math.abs(px[p+1]-bg) + Math.abs(px[p+2]-bb) < TOL;
-
   const stack = [];
   for(const [x,y] of border){ if(near(at(x,y))) stack.push([x,y]); }
   while(stack.length){
@@ -696,19 +801,10 @@ function cutout(img){
     stack.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
   }
   for(let i = 0; i < w*h; i++) if(seen[i]) px[i*4+3] = 0;
+}
 
-  /* 縁を1px なじませる */
-  const alpha = new Uint8Array(w*h);
-  for(let i = 0; i < w*h; i++) alpha[i] = px[i*4+3];
-  for(let y = 1; y < h-1; y++) for(let x = 1; x < w-1; x++){
-    const i = y*w+x;
-    if(!alpha[i]) continue;
-    const s = alpha[i-1] + alpha[i+1] + alpha[i-w] + alpha[i+w];
-    if(s < 1020) px[i*4+3] = Math.round(s/4 * .6 + 102);
-  }
-  ctx.putImageData(im, 0, 0);
-
-  /* 余白を切る */
+/* 余白を切り、確認用に表示し、保存用の小さな PNG を作る。 */
+function finishCut(cv, px, w, h){
   let x0 = w, y0 = h, x1 = 0, y1 = 0;
   for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
     if(px[(y*w+x)*4+3] > 24){
@@ -726,7 +822,7 @@ function cutout(img){
 
   /* 保存するのは切り抜き後だけ。元画像は持たない。 */
   const small = document.createElement('canvas');
-  const k = Math.min(1, 300 / Math.max(out.width, out.height));
+  const k = Math.min(1, 360 / Math.max(out.width, out.height));
   small.width = Math.round(out.width*k); small.height = Math.round(out.height*k);
   small.getContext('2d').drawImage(out, 0, 0, small.width, small.height);
   cutDataURL = small.toDataURL('image/png');
