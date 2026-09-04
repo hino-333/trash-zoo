@@ -61,8 +61,27 @@ body{
 
 /* 島の呼吸 */
 @keyframes sway{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg)}}
+/* 風は島全体に同時に吹く。個々の揺れと重ねると、一本ずつ動いて見えなくなる。 */
+@keyframes gust{
+  0%,18%{transform:rotate(0deg)}
+  26%{transform:rotate(2.8deg)}
+  34%{transform:rotate(1.1deg)}
+  44%{transform:rotate(3.4deg)}
+  56%{transform:rotate(.6deg)}
+  68%{transform:rotate(1.9deg)}
+  80%{transform:rotate(.2deg)}
+  100%{transform:rotate(0deg)}
+}
+.gust{animation:gust 13s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+
 @keyframes sway-soft{0%,100%{transform:rotate(-.9deg)}50%{transform:rotate(.9deg)}}
-@keyframes wave-drift{0%{transform:translateX(0)}100%{transform:translateX(-140px)}}
+@keyframes wave-drift{
+  0%{transform:translateX(0) translateY(0);opacity:0}
+  14%{opacity:.6}
+  50%{transform:translateX(-80px) translateY(3px);opacity:.55}
+  84%{opacity:.35}
+  100%{transform:translateX(-170px) translateY(0);opacity:0}
+}
 @keyframes cloud-drift{0%{transform:translate(-420px,-60px)}100%{transform:translate(1020px,120px)}}
 @keyframes pulse-ring{0%{opacity:0;transform:scale(.7)}18%{opacity:.85}100%{opacity:0;transform:scale(1.5)}}
 .tree{animation:sway 5.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
@@ -165,29 +184,53 @@ body{
   background:rgba(50,45,30,.26);border-radius:50%;filter:blur(1px)}
 
 @keyframes hop-light{
-  0%,100%{transform:translateY(0) rotate(-4deg)}
-  22%{transform:translateY(-34px) rotate(6deg)}
-  42%{transform:translateY(-42px) rotate(-3deg)}
-  70%{transform:translateY(-8px) rotate(3deg)}
+  0%   {transform:translateY(0)     scale(1.07,.93) rotate(-4deg)}
+  10%  {transform:translateY(-14px) scale(.93,1.09) rotate(1deg)}
+  30%  {transform:translateY(-36px) scale(.98,1.02) rotate(5deg)}
+  46%  {transform:translateY(-43px) scale(1,1)      rotate(2deg)}
+  62%  {transform:translateY(-36px) scale(1,1)      rotate(-3deg)}
+  86%  {transform:translateY(-2px)  scale(1.09,.91) rotate(2deg)}
+  94%  {transform:translateY(0)     scale(1.04,.96) rotate(-1deg)}
+  100% {transform:translateY(0)     scale(1,1)      rotate(-4deg)}
 }
 @keyframes hop-medium{
-  0%,100%{transform:translateY(0) rotate(0deg)}
-  30%{transform:translateY(-24px) rotate(-5deg)}
-  60%{transform:translateY(-3px) rotate(3deg)}
+  0%   {transform:translateY(0)     scale(1.08,.92)}
+  12%  {transform:translateY(-12px) scale(.92,1.1) rotate(-3deg)}
+  34%  {transform:translateY(-26px) scale(1,1)     rotate(-4deg)}
+  48%  {transform:translateY(-28px) scale(1,1)     rotate(1deg)}
+  70%  {transform:translateY(-6px)  scale(1.02,.98) rotate(3deg)}
+  80%  {transform:translateY(0)     scale(1.12,.88) rotate(1deg)}
+  90%  {transform:translateY(-3px)  scale(.98,1.02)}
+  100% {transform:translateY(0)     scale(1,1)}
 }
 @keyframes hop-heavy{
-  0%,100%{transform:translateY(0) rotate(0deg)}
-  12%{transform:translateY(-4px) rotate(-2deg)}
-  24%{transform:translateY(0) rotate(2deg)}
-  36%{transform:translateY(-3px) rotate(-1deg)}
-  48%{transform:translateY(0) rotate(0deg)}
+  0%   {transform:translateY(0) rotate(0deg)   scale(1,1)}
+  6%   {transform:translateY(0) rotate(0deg)   scale(1.03,.97)}
+  12%  {transform:translateY(-5px) rotate(-2deg) scale(.98,1.03)}
+  20%  {transform:translateY(0) rotate(2.4deg) scale(1.05,.95)}
+  28%  {transform:translateY(-2px) rotate(-1.8deg)}
+  36%  {transform:translateY(0) rotate(1.2deg) scale(1.02,.98)}
+  44%  {transform:translateY(0) rotate(-.6deg)}
+  52%  {transform:translateY(0) rotate(.2deg)  scale(1,1)}
+  100% {transform:translateY(0) rotate(0deg)   scale(1,1)}
 }
-@keyframes squash-light{0%,100%{transform:translateX(-50%) scaleX(1);opacity:.24}
-  32%{transform:translateX(-50%) scaleX(.6);opacity:.1}}
-@keyframes squash-medium{0%,100%{transform:translateX(-50%) scaleX(1);opacity:.26}
-  30%{transform:translateX(-50%) scaleX(.72);opacity:.14}}
-@keyframes squash-heavy{0%,100%{transform:translateX(-50%) scaleX(1);opacity:.28}
-  20%{transform:translateX(-50%) scaleX(.94);opacity:.24}}
+@keyframes squash-light{
+  0%{transform:translateX(-50%) scaleX(1.12);opacity:.28}
+  10%{transform:translateX(-50%) scaleX(.9);opacity:.2}
+  46%{transform:translateX(-50%) scaleX(.55);opacity:.09}
+  86%{transform:translateX(-50%) scaleX(1.14);opacity:.28}
+  100%{transform:translateX(-50%) scaleX(1);opacity:.24}}
+@keyframes squash-medium{
+  0%{transform:translateX(-50%) scaleX(1.12);opacity:.3}
+  12%{transform:translateX(-50%) scaleX(.88);opacity:.22}
+  42%{transform:translateX(-50%) scaleX(.68);opacity:.13}
+  80%{transform:translateX(-50%) scaleX(1.16);opacity:.3}
+  100%{transform:translateX(-50%) scaleX(1);opacity:.26}}
+@keyframes squash-heavy{
+  0%,100%{transform:translateX(-50%) scaleX(1);opacity:.28}
+  12%{transform:translateX(-50%) scaleX(.93);opacity:.23}
+  20%{transform:translateX(-50%) scaleX(1.04);opacity:.29}
+  36%{transform:translateX(-50%) scaleX(1);opacity:.27}}
 @keyframes drift{0%,100%{margin-left:0}50%{margin-left:14px}}
 
 /* 個体詳細 */

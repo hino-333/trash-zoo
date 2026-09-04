@@ -465,7 +465,9 @@ function scatterTrees(parent, r){
 function drawTree(parent, x, y, s, r){
   const g = el('g', {}, parent);
   el('ellipse', { cx:x+6, cy:y+4, rx:20*s, ry:7*s, fill:'rgba(60,54,40,.26)' }, g);
-  const sway = el('g', { class:'tree' }, g);
+  const gust = el('g', { class:'gust' }, g);          // 島全体に同時に吹く風
+  gust.style.animationDelay = (-r()*1.5).toFixed(2) + 's';
+  const sway = el('g', { class:'tree' }, gust);       // その上に一本ごとの揺れ
   sway.style.animationDuration = (4.5 + r()*3).toFixed(1) + 's';
   sway.style.animationDelay = (-r()*4).toFixed(1) + 's';
   el('rect', { x:x-3.5*s, y:y-22*s, width:7*s, height:24*s, rx:3*s, fill:'#9A7346' }, sway);

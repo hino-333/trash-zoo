@@ -241,7 +241,9 @@ function buildExhibit(pen, key, W, H){
   const mid = SVG.make('g', back, {});
   for(let x = -20; x < W + 40; x += 60 + r()*70){
     const h = 40 + r()*38, w = 34 + r()*26;
-    const g = SVG.make('g', mid, { class:'ex-tree' });
+    const gust = SVG.make('g', mid, { class:'gust' });
+    gust.style.animationDelay = (-r()*2).toFixed(2) + 's';
+    const g = SVG.make('g', gust, { class:'ex-tree' });
     g.style.animationDuration = (5 + r()*4).toFixed(1) + 's';
     g.style.animationDelay = (-r()*6).toFixed(1) + 's';
     SVG.rect(g, x + w/2 - 3, horizon - h*.3, 6, h*.5, '#8A6A44');
@@ -317,7 +319,9 @@ function buildExhibit(pen, key, W, H){
   for(let i = 0; i < 17; i++){
     const y = horizon + H*.05 + r() * (fenceY - horizon - H*.08);
     const x = r() * W, k = (.55 + (y - horizon) / (fenceY - horizon) * .8) * (.7 + r()*.7);
-    const g = SVG.make('g', back, { class:'ex-tuft' });
+    const gustT = SVG.make('g', back, { class:'gust' });
+    gustT.style.animationDelay = (-r()*2).toFixed(2) + 's';
+    const g = SVG.make('g', gustT, { class:'ex-tuft' });
     g.style.animationDuration = (3 + r()*3).toFixed(1) + 's';
     g.style.animationDelay = (-r()*5).toFixed(1) + 's';
     const blades = 3 + Math.floor(r()*3);
